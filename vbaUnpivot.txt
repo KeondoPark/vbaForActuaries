@@ -1,0 +1,90 @@
+Sub Unpivot(ByRef origRange As Range, ByRef unpivRange As Range, ByRef targetCell As Range)
+
+
+    Dim row_origRange As Long
+    Dim col_origRange As Long
+    Dim row_unpivRange As Long
+    Dim col_unpivRange As Long
+    Dim nRows_unpivRange As Long
+    Dim nCols_unpivRange As Long
+    Dim nRows_origRange As Long
+    Dim nCols_origRange As Long
+    Dim iRow As Long
+    Dim iCol As Long
+    Dim iCol_Unpivot As Long
+    Dim nRows_targetArray As Long
+    Dim nCols_targetArray As Long
+    
+    Dim Header() As Variant
+    Dim dimArray() As Variant
+    Dim valueArray() As Variant
+
+    Application.ScreenUpdating = False
+    
+    row_origRange = origRange.Row
+    col_origRange = origRange.Column
+    row_unpivRange = unpivRange.Row
+    col_unpivRange = unpivRange.Column
+    nRows_unpivRange = unpivRange.Rows.Count
+    nCols_unpivRange = unpivRange.Columns.Count
+                      
+    nRows_origRange = origRange.Rows.Count
+    nCols_origRange = origRange.Columns.Count
+    
+    
+    'Check if the ranges are valid
+    If col_origRange + nCols_origRange < col_unpivRange Or col_origRange + nCols_origRange < col_unpivRange + nCols_unpivRange Then
+        MsgBox "Unpivot columns out of range!"
+        Exit Sub
+    ElseIf row_origRange <> row_unpivRange Then
+        MsgBox "Unpivot columns should be in a header row!"
+        Exit Sub
+    ElseIf nRows_unpivRange > 1 Then
+        MsgBox "Unpivot columns cannot exceed 1 row"
+        Exit Sub
+    End If
+    
+    nRows_targetArray = 1 + (nRows_origRange - 1) * nCols_unpivRange
+    nCols_targetArray = nCols_origRange - nCols_unpivRange + 2
+    
+    'Set the size of the converted range
+    ReDim Header(1 To 1, 1 To nCols_targetArray) As Variant
+    ReDim dimArray(1 To nRows_targetArray - 1, 1 To nCols_origRange - nCols_unpivRange + 1) As Variant
+    ReDim valueArray(1 To nRows_targetArray - 1, 1 To 1) As Variant
+    
+    
+    'Target cells
+    targetCell.Worksheet.Select
+    targetCell.Range(Cells(1, 1), Cells(nRows_targetArray, nCols_targetArray)).ClearContents
+    
+    'Data transform
+    For iRow = 1 To nRows_origRange
+        For iCol = 1 To col_unpivRange - col_origRange
+            
+            'Headers
+            If iRow = 1 Then
+                Header(1, iCol) = origRange.Cells(1, iCol).Value
+                Header(1, col_unpivRange - col_origRange + 1) = "PivotDimension"
+                Header(1, col_unpivRange - col_origRange + 2) = "Values"
+            Else
+                For iCol_Unpivot = 1 To nCols_unpivRange
+                    dimArray((iRow - 2) * nCols_unpivRange + iCol_Unpivot, iCol) = origRange.Cells(iRow, iCol)
+                    dimArray((iRow - 2) * nCols_unpivRange + iCol_Unpivot, col_unpivRange - col_origRange + 1) = origRange.Cells(1, col_unpivRange - col_origRange + iCol_Unpivot)
+                    valueArray((iRow - 2) * nCols_unpivRange + iCol_Unpivot, 1) = origRange.Cells(iRow, col_unpivRange - col_origRange + iCol_Unpivot)
+                Next
+            End If
+        Next
+    Next
+
+    'Print values on the target area
+    targetCell.Range(Cells(1, 1), Cells(1, nCols_targetArray)) = Header
+    targetCell.Range(Cells(2, 1), Cells(nRows_targetArray, nCols_targetArray - 1)).Value = dimArray
+    targetCell.Range(Cells(2, nCols_targetArray), Cells(nRows_targetArray, nCols_targetArray)).Value = valueArray
+    
+    Erase Header
+    Erase dimArray
+    Erase valueArray
+
+    Application.ScreenUpdating = True
+
+End Sub
